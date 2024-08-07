@@ -6,6 +6,7 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { IoCodeSlash } from "react-icons/io5";
 import { usePathname } from "next/navigation";
+import { SiPinetwork } from "react-icons/si";
 
 export default function Navbar() {
   const { systemTheme, theme, setTheme } = useTheme();
@@ -33,6 +34,7 @@ export default function Navbar() {
             CodeNest
           </Link>{" "}
           {pathname === "/ide" ? "IDE" : ""}
+          {pathname === "/liveEditor" ? "Collaborative IDE" : ""}
         </section>
         <p className="m-auto">Phase - 1</p>
         <ul className="nav-links flex  gap-4 md:gap-16 items-center">
@@ -46,6 +48,21 @@ export default function Navbar() {
             <Link href="/ide" className="flex justify-center align-middle p-1">
               <IoCodeSlash className="inline text-2xl mr-2" />
               Code
+            </Link>
+          </li>
+          <li
+            className={
+              currentTheme === "dark"
+                ? "hover:bg-white hover:rounded-md p-2 hover:text-black"
+                : "hover:bg-purple-400 hover:rounded-md p-2 hover:text-white"
+            }
+          >
+            <Link
+              href="/liveEditor"
+              className="flex justify-center align-middle p-1"
+            >
+              <SiPinetwork className="inline text-2xl mr-2" />
+              CodeRoom
             </Link>
           </li>
           <li
