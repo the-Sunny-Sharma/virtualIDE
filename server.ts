@@ -23,8 +23,7 @@ const io = new SocketIOServer(httpServer, {
 });
 
 const userSockets = new Map<string, string>();
-const collaborationRooms = new Map<string, string[]>(); // roomId => [userId1, userId2]
-const pendingInvitations = new Map<string, { from: string; to: string }>();
+const collaborationRooms = new Map<string, string[]>();
 
 io.on("connection", (socket) => {
   console.log("New client connected.\nSocket id: ", socket.id);
@@ -40,8 +39,13 @@ io.on("connection", (socket) => {
     io.emit("message", messageData);
   });
 
+  socket.on("roomInputChange", ({ newValue, roomName }) => {
+    console.log(" Room A ", newValue);
+    socket.to(roomName).emit("liveEdit", newValue);
+  });
+
   socket.on("inputChange", (inputValue: string) => {
-    console.log("Received input change:", inputValue);
+    console.log("", inputValue);
     socket.broadcast.emit("inputChange", inputValue);
   });
 
@@ -57,35 +61,32 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("respondToInvite", ({ fromUser, toUser, accepted }) => {
+  socket.on("respondToInvite", ({ from, to, accepted }) => {
     console.log(
-      `Invitation response from ${toUser} to ${fromUser}: ${
+      `Invitation response from ${from} to ${to}: ${
         accepted ? "Accepted" : "Declined"
       }`
     );
 
-    const fromUserSocketId = userSockets.get(fromUser);
-    const toUserSocketId = userSockets.get(toUser);
-
-    if (accepted) {
-      const roomId = `${fromUser}-${toUser}`;
-      collaborationRooms.set(roomId, [fromUser, toUser]);
-
-      if (fromUserSocketId) {
-        io.to(fromUserSocketId).emit("invitationResponse", { status: true });
-        io.to(fromUserSocketId).emit("collaborationStarted", { withU: toUser });
+    const fromSocketId = userSockets.get(from);
+    const toUserSocketId = userSockets.get(to);
+    if (fromSocketId && toUserSocketId) {
+      if (accepted) {
+        const roomName = `${from}-${to}`;
+        io.to(fromSocketId).emit("invitationResponse", { accepted, roomName });
+        io.to(toUserSocketId).emit("invitationResponse", {
+          accepted,
+          roomName,
+        });
+      } else {
+        io.to(fromSocketId).emit("invitationResponse", { accepted });
       }
-      if (toUserSocketId) {
-        io.to(toUserSocketId).emit("collaborationStarted", { withU: fromUser });
-      }
-
-      pendingInvitations.delete(toUser);
-    } else {
-      if (fromUserSocketId) {
-        io.to(fromUserSocketId).emit("invitationResponse", { status: false });
-      }
-      pendingInvitations.delete(toUser);
     }
+  });
+
+  socket.on("joinRoom", ({ roomName, storedUsername }) => {
+    console.log("Joining room for", storedUsername);
+    socket.join(roomName);
   });
 
   socket.on("disconnect", () => {

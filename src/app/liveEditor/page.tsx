@@ -15,6 +15,8 @@ export default function EditorPage() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [username, setUsername] = useState<string>("");
   const [invitee, setInvitee] = useState("");
+  const [liveEdit, setLiveEdit] = useState("");
+  const [roomName, setRoomName] = useState("");
 
   useEffect(() => {
     const storedUsername = localStorage.getItem("username");
@@ -45,6 +47,11 @@ export default function EditorPage() {
       setInputValue(newvalue);
     });
 
+    socketIo.on("liveEdit", (newvalue: string) => {
+      console.log("Received input change:", newvalue);
+      setLiveEdit(newvalue);
+    });
+
     socketIo.on("invitationSent", ({ status, toUser }) => {
       if (status === "success") {
         toast.success(`Invitation sent to ${toUser}`);
@@ -53,13 +60,20 @@ export default function EditorPage() {
       }
     });
 
-    socketIo.on("invitationResponse", (status: boolean) => {
-      if (status) alert("Your request got accepted.\nHappy Collaboration.");
-      else alert("Your invitation was rejected");
+    socketIo.on("invitationResponse", ({ accepted, roomName }) => {
+      console.log("invitaion REsponse emiiter eexxecuting");
+      if (accepted) {
+        toast.info("Your request got accepted.\nHappy Collaboration.");
+        setRoomName(roomName);
+        socketIo.emit("joinRoom", { roomName, storedUsername });
+      } else toast.error("Your invitation was rejected");
     });
 
-    socketIo.on("collaborationStarted", (withU: string) => {
-      alert(`${withU} joined u`);
+    socketIo.on("respondToInvite", ({ from, to, accepted }) => {
+      console.log(`You `, accepted);
+      if (accepted) {
+        toast.success("Your invitation got acepted");
+      }
     });
 
     socketIo.on("invitation", ({ from }) => {
@@ -71,7 +85,7 @@ export default function EditorPage() {
             <button
               className="p-2 bg-green-500 text-white font-bold rounded-md"
               onClick={() => {
-                console.log("Invitation accepted");
+                // console.log("Invitation accepted");
                 socketIo.emit("respondToInvite", {
                   from: from,
                   to: username,
@@ -85,7 +99,7 @@ export default function EditorPage() {
             <button
               className="p-2 bg-red-500 text-white font-bold rounded-md"
               onClick={() => {
-                console.log("Invitation declined");
+                // console.log("Invitation declined");
                 socketIo.emit("respondToInvite", {
                   from: from,
                   to: username,
@@ -137,6 +151,14 @@ export default function EditorPage() {
     setInputValue(newValue);
     if (socket) {
       socket.emit("inputChange", newValue);
+    }
+  };
+
+  const handleLiveEdit = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setLiveEdit(newValue);
+    if (socket) {
+      socket.emit("roomInputChange", { newValue, roomName });
     }
   };
 
@@ -232,6 +254,8 @@ export default function EditorPage() {
             rows={4}
             className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
             placeholder="Let's collaborate..."
+            value={liveEdit}
+            onChange={handleLiveEdit}
           ></textarea>
           <input
             type="text"
