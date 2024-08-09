@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import { IoCodeSlash } from "react-icons/io5";
 import { usePathname } from "next/navigation";
 import { SiPinetwork } from "react-icons/si";
+import { FaLaptopCode } from "react-icons/fa";
 
 export default function Navbar() {
   const { systemTheme, theme, setTheme } = useTheme();
@@ -36,13 +37,13 @@ export default function Navbar() {
           {pathname === "/ide" ? "IDE" : ""}
           {pathname === "/liveEditor" ? "Collaborative IDE" : ""}
         </section>
-        <p className="m-auto">Phase - 1</p>
-        <ul className="nav-links flex  gap-4 md:gap-16 items-center">
+        <p className="m-auto lg:text-lg md:text-md text-sm">Phase - 1</p>
+        <ul className="nav-links flex  gap-4 md:gap-2 items-center ">
           <li
             className={
               currentTheme === "dark"
-                ? "hover:bg-white hover:rounded-md p-2 hover:text-black"
-                : "hover:bg-purple-400 hover:rounded-md p-2 hover:text-white"
+                ? "hover:bg-white hover:rounded-md p-2 hover:text-black md:block hidden"
+                : "hover:bg-purple-400 hover:rounded-md p-2 hover:text-white md:block hidden"
             }
           >
             <Link href="/ide" className="flex justify-center align-middle p-1">
@@ -53,8 +54,8 @@ export default function Navbar() {
           <li
             className={
               currentTheme === "dark"
-                ? "hover:bg-white hover:rounded-md p-2 hover:text-black"
-                : "hover:bg-purple-400 hover:rounded-md p-2 hover:text-white"
+                ? "hover:bg-white hover:rounded-md p-2 hover:text-black md:block hidden"
+                : "hover:bg-purple-400 hover:rounded-md p-2 hover:text-white md:block hidden"
             }
           >
             <Link
@@ -65,6 +66,64 @@ export default function Navbar() {
               CodeRoom
             </Link>
           </li>
+          <li
+            className={
+              currentTheme === "dark"
+                ? "hover:bg-white hover:rounded-md p-2 hover:text-black md:block hidden"
+                : "hover:bg-purple-400 hover:rounded-md p-2 hover:text-white md:block hidden"
+            }
+          >
+            <Link
+              href="/liveIDE"
+              className="flex justify-center align-middle p-1"
+            >
+              <FaLaptopCode className="inline text-2xl mr-2" />
+              LiveIDE
+            </Link>
+          </li>
+
+          {/* ---------------Mobile view START------------------ */}
+          <li
+            className={
+              currentTheme === "dark"
+                ? "hover:bg-white hover:rounded-md p-1 hover:text-black md:hidden"
+                : "hover:bg-purple-400 hover:rounded-md p-1 hover:text-white md:hidden"
+            }
+          >
+            <Link href="/ide" className="flex justify-center align-middle p-1">
+              <IoCodeSlash className="inline text-2xl mr-1" />
+            </Link>
+          </li>
+          <li
+            className={
+              currentTheme === "dark"
+                ? "hover:bg-white hover:rounded-md p-1 hover:text-black md:hidden"
+                : "hover:bg-purple-400 hover:rounded-md p-1 hover:text-white md:hidden"
+            }
+          >
+            <Link
+              href="/liveEditor"
+              className="flex justify-center align-middle p-1"
+            >
+              <SiPinetwork className="inline text-2xl mr-1" />
+            </Link>
+          </li>
+          <li
+            className={
+              currentTheme === "dark"
+                ? "hover:bg-white hover:rounded-md p-1 hover:text-black md:hidden"
+                : "hover:bg-purple-400 hover:rounded-md p-1 hover:text-white md:hidden"
+            }
+          >
+            <Link
+              href="/liveIDE"
+              className="flex justify-center align-middle p-1"
+            >
+              <FaLaptopCode className="inline text-2xl mr-1" />
+            </Link>
+          </li>
+          {/* ---------------Mobile view END------------------ */}
+
           <li
             className={
               currentTheme === "dark"
@@ -79,6 +138,7 @@ export default function Navbar() {
             )}
           </li>
         </ul>
+
         <ThemeSwitcher />
       </div>
     </nav>
