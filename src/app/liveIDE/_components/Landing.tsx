@@ -40,44 +40,16 @@ interface OutputDetails {
   compile_output?: string;
 }
 
-const javascriptDefault = `/**
-* Problem: Binary Search: Search a sorted array for a target value.
-*/
-
-// Time: O(log n)
-const binarySearch = (arr, target) => {
- return binarySearchHelper(arr, target, 0, arr.length - 1);
-};
-
-const binarySearchHelper = (arr, target, start, end) => {
- if (start > end) {
-   return false;
- }
- let mid = Math.floor((start + end) / 2);
- if (arr[mid] === target) {
-   return mid;
- }
- if (arr[mid] < target) {
-   return binarySearchHelper(arr, target, mid + 1, end);
- }
- if (arr[mid] > target) {
-   return binarySearchHelper(arr, target, start, mid - 1);
- }
-};
-
-const arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-const target = 5;
-console.log(binarySearch(arr, target));
-`;
+const javascriptDefault = "//Code here";
 
 export default function Landing() {
   const [username, setUsername] = useState<string>("");
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [code, setCode] = useState<string>(javascriptDefault);
   const [customInput, setCustomInput] = useState<string>("");
   const [outputDetails, setOutputDetails] = useState<OutputDetails | undefined>(
     undefined
   );
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [processing, setProcessing] = useState<boolean | null>(null);
   const [theme, setTheme] = useState<ThemeOption>({
     label: "Cobalt",
@@ -87,6 +59,14 @@ export default function Landing() {
   const [language, setLanguage] = useState<LanguageOption | null>(
     languageOptions[0]
   );
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+  const [isButtonFrozen, setIsButtonFrozen] = useState(false);
+
+  const [isCollaborating, setIsCollaborting] = useState<boolean>(false);
+  const [receiverName, setReceiverName] = useState("");
+  const [roomName, setRoomName] = useState("");
+  const [studentCode, setStudentCode] = useState<string>(code);
+  const [myStoredCode, setMyStoredCode] = useState<string>("");
 
   const enterPress = useKeyPress("Enter");
   const ctrlPress = useKeyPress("Control");
@@ -104,6 +84,16 @@ export default function Landing() {
     }
   }, [ctrlPress, enterPress]);
 
+  useEffect(() => {
+    defineTheme("oceanic-next").then(() =>
+      setTheme({
+        value: "oceanic-next",
+        label: "Oceanic Next",
+        key: "oceanic-next",
+      })
+    );
+  }, []);
+
   const handleCompile = () => {
     setProcessing(true);
     const formData = {
@@ -112,10 +102,10 @@ export default function Landing() {
       stdin: btoa(customInput),
     };
 
-    console.log("formData:", formData);
-    console.log("API URL:", process.env.NEXT_PUBLIC_RAPID_API_URL);
-    console.log("API Host:", process.env.NEXT_PUBLIC_RAPID_API_HOST);
-    console.log("API Key:", process.env.NEXT_PUBLIC_RAPID_API_KEY);
+    // console.log("formData:", formData);
+    // console.log("API URL:", process.env.NEXT_PUBLIC_RAPID_API_URL);
+    // console.log("API Host:", process.env.NEXT_PUBLIC_RAPID_API_HOST);
+    // console.log("API Key:", process.env.NEXT_PUBLIC_RAPID_API_KEY);
 
     const options = {
       method: "POST",
@@ -200,16 +190,6 @@ export default function Landing() {
   };
 
   useEffect(() => {
-    defineTheme("oceanic-next").then(() =>
-      setTheme({
-        value: "oceanic-next",
-        label: "Oceanic Next",
-        key: "oceanic-next",
-      })
-    );
-  }, []);
-  //////////////////////////////////////
-  useEffect(() => {
     const storedUsername = localStorage.getItem("username");
     setUsername(storedUsername || "");
 
@@ -220,17 +200,124 @@ export default function Landing() {
     });
 
     socketIo.on("connect", () => {
-      console.log("Connected to server");
+      console.log(socketIo);
+      console.log(`Socket Connected\n@${socketIo.id}`);
+    });
+
+    socketIo.on("helpRequest", (student: string) => {
+      const date = new Date();
+      console.log("Help request from : ", student, " ", date.toString());
+      toast.info(
+        <div className="p-2">
+          <p className="text-sm text-gray-600">Help Request from {student}</p>
+          <div className="flex flex-col justify-between">
+            <button
+              className="p-2 bg-green-500 text-white font-bold rounded-md"
+              onClick={() => {
+                socketIo.emit("helpResponse", {
+                  teacher: username,
+                  student,
+                  accepted: true,
+                });
+                // toast.success(
+                //   "Your current code is on hold.\nHappy Collaboration"
+                // );
+              }}
+            >
+              Accept
+            </button>
+            <button
+              className="p-2 bg-red-500 text-white font-bold rounded-md"
+              onClick={() => {
+                socketIo.emit("helpResponse", {
+                  teacher: username,
+                  student,
+                  accepted: false,
+                });
+                // toast.error(`Request Declined from ${from}`);
+              }}
+            >
+              Decline
+            </button>
+          </div>
+        </div>,
+        {
+          position: "top-right",
+          autoClose: 10000,
+          closeButton: false,
+          draggable: false,
+        }
+      );
+    });
+
+    socketIo.on("responseFeedback", ({ roomName, student }) => {
+      setMyStoredCode(studentCode);
+      toast.info("Your current code is on hold.\nHappy Collaboration");
+      setIsCollaborting(true);
+      setIsButtonFrozen(true);
+      setRoomName(roomName);
+      socketIo.emit("teacherRoomJoin", {
+        roomName,
+        teacher: username,
+        student,
+      });
+    });
+
+    socketIo.on("updateCode", ({ studentCode, student }) => {
+      setCode(studentCode);
+      console.log("You are viewing code of ", student, "\n", studentCode);
+    });
+
+    socketIo.on("codeUpdate", ({ code }) => {
+      console.log("code updating ", code);
+      setCode(code);
+      setStudentCode(code);
+    });
+
+    socketIo.on("requestDenied", ({ teacherName }) => {
+      toast.error(`Request Rejected by ${teacherName}`);
     });
 
     setSocket(socketIo);
+
+    return () => {
+      console.log("Socket Disconnected");
+      socketIo.disconnect();
+    };
   }, [username]);
-  ///////////////////////////////////////
+
+  useEffect(() => {
+    if (socket) {
+      socket.on("getCode", ({ teacher, roomName }) => {
+        console.log("Student code:", studentCode); // studentCode will be the latest value
+        setIsCollaborting(true);
+        setIsButtonFrozen(true);
+        socket.emit("studentJoinRoom", {
+          student: username,
+          teacher,
+          roomName,
+          studentCode,
+        });
+      });
+    }
+
+    // Clean up the event listener when the component unmounts
+    return () => {
+      socket?.off("getCode");
+    };
+  }, [studentCode, socket]); // This effect runs whenever `studentCode` or `socket` changes
 
   const onChange = (action: string, data: string) => {
     switch (action) {
       case "code": {
         setCode(data);
+        setStudentCode(data);
+        console.log(`code is ${code}`);
+        console.log(`Student cxode is ${studentCode}`);
+        console.log(`Stored code is ${myStoredCode}`);
+        if (socket && roomName) {
+          socket.emit("codeUpdateInRoom", { roomName, code: data });
+        }
         break;
       }
       default: {
@@ -266,6 +353,14 @@ export default function Landing() {
   const sendRequest = (receiverName: string) =>
     new Promise((resolve, reject) => {
       if (socket && username && receiverName) {
+        socket.emit("askHelp", { student: username, teacher: receiverName });
+        socket.once("helpStatus", ({ status, teacher }) => {
+          if (status === "success") {
+            resolve("Request sent");
+          } else {
+            reject("Failed to send");
+          }
+        });
       } else {
         alert("Can't send invitation");
       }
@@ -273,6 +368,7 @@ export default function Landing() {
 
   const hAskHelp = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
+    // console.log(studentCode);
     setIsButtonDisabled(true); //Disable the button
     console.log("Button Disabled");
     toast.promise(sendRequest(receiverName), {
@@ -287,8 +383,6 @@ export default function Landing() {
       console.log("Button Enabled");
     }, 10000); // 10 seconds delay
   };
-  const [receiverName, setReceiverName] = useState("");
-  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
   return (
     <>
@@ -328,12 +422,12 @@ export default function Landing() {
           />
           <button
             className={
-              isButtonDisabled
+              isButtonDisabled || isButtonFrozen
                 ? "bg-purple-600 hover:bg-purple-800 hover:cursor-not-allowed text-white rounded-md py-1 px-2"
                 : "bg-purple-600 hover:bg-purple-400 text-white rounded-md py-1 px-2"
             }
             onClick={hAskHelp}
-            disabled={isButtonDisabled} // Disable the button based on state
+            disabled={isButtonDisabled || isButtonFrozen} // Disable the button based on state
           >
             Ask Help
           </button>

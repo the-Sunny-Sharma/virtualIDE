@@ -157,6 +157,7 @@ export default function EditorPage() {
   const handleLiveEdit = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setLiveEdit(newValue);
+    console.log("New value ", newValue);
     if (socket) {
       socket.emit("roomInputChange", { newValue, roomName });
     }

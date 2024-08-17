@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 
 interface CodeEditorWindowProps {
@@ -17,6 +17,10 @@ const CodeEditorWindow: React.FC<CodeEditorWindowProps> = ({
   theme = "vs-dark",
 }) => {
   const [value, setValue] = useState<string>(code);
+
+  useEffect(() => {
+    setValue(code); // Update the internal state whenever the code prop changes
+  }, [code]);
 
   const handleEditorChange = (value: string | undefined) => {
     setValue(value || "");
