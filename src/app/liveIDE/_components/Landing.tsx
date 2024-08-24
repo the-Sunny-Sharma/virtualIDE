@@ -66,7 +66,7 @@ export default function Landing() {
   const [receiverName, setReceiverName] = useState("");
   const [roomName, setRoomName] = useState("");
   const [studentCode, setStudentCode] = useState<string>(code);
-  const [myStoredCode, setMyStoredCode] = useState<string>("");
+  const [myStoredCode, setMyStoredCode] = useState<string>(studentCode);
 
   const enterPress = useKeyPress("Enter");
   const ctrlPress = useKeyPress("Control");
@@ -252,6 +252,7 @@ export default function Landing() {
 
     socketIo.on("responseFeedback", ({ roomName, student }) => {
       setMyStoredCode(studentCode);
+      // console.log(`Stored Code \n ${myStoredCode}`);
       toast.info("Your current code is on hold.\nHappy Collaboration");
       setIsCollaborting(true);
       setIsButtonFrozen(true);
@@ -266,6 +267,7 @@ export default function Landing() {
     socketIo.on("updateCode", ({ studentCode, student }) => {
       setCode(studentCode);
       console.log("You are viewing code of ", student, "\n", studentCode);
+      console.log(`Your stored code is ${myStoredCode}`);
     });
 
     socketIo.on("codeUpdate", ({ code }) => {
@@ -283,6 +285,9 @@ export default function Landing() {
     return () => {
       console.log("Socket Disconnected");
       socketIo.disconnect();
+      setIsCollaborting(false);
+      setIsButtonDisabled(false);
+      if (myStoredCode) setStudentCode(myStoredCode);
     };
   }, [username]);
 
@@ -292,6 +297,7 @@ export default function Landing() {
         console.log("Student code:", studentCode); // studentCode will be the latest value
         setIsCollaborting(true);
         setIsButtonFrozen(true);
+        setRoomName(roomName);
         socket.emit("studentJoinRoom", {
           student: username,
           teacher,
@@ -312,9 +318,9 @@ export default function Landing() {
       case "code": {
         setCode(data);
         setStudentCode(data);
-        console.log(`code is ${code}`);
-        console.log(`Student cxode is ${studentCode}`);
-        console.log(`Stored code is ${myStoredCode}`);
+        // console.log(`code is ${code}`);
+        // console.log(`Student cxode is ${studentCode}`);
+        // console.log(`Stored code is ${myStoredCode}`);
         if (socket && roomName) {
           socket.emit("codeUpdateInRoom", { roomName, code: data });
         }
@@ -356,6 +362,7 @@ export default function Landing() {
         socket.emit("askHelp", { student: username, teacher: receiverName });
         socket.once("helpStatus", ({ status, teacher }) => {
           if (status === "success") {
+            setIsButtonDisabled(true); //Disable the button
             resolve("Request sent");
           } else {
             reject("Failed to send");
@@ -369,7 +376,6 @@ export default function Landing() {
   const hAskHelp = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     // console.log(studentCode);
-    setIsButtonDisabled(true); //Disable the button
     console.log("Button Disabled");
     toast.promise(sendRequest(receiverName), {
       pending: "Sending Request",
@@ -382,6 +388,12 @@ export default function Landing() {
       setIsButtonDisabled(false);
       console.log("Button Enabled");
     }, 10000); // 10 seconds delay
+  };
+
+  const handleExitRoom = () => {
+    if (myStoredCode) {
+      console.log(myStoredCode);
+    }
   };
 
   return (
@@ -431,6 +443,18 @@ export default function Landing() {
           >
             Ask Help
           </button>
+          {isCollaborating ? (
+            <div>
+              <button
+                className="px-2 py-1 bg-red-500 text-white rounded-md relative mr-[20px]"
+                onClick={handleExitRoom}
+              >
+                End Session
+              </button>
+            </div>
+          ) : (
+            <div className="hidden"></div>
+          )}
         </div>
       </div>
       <div className="flex flex-row space-x-4 items-start px-4 py-4 h-[85%]">
